@@ -1,0 +1,210 @@
+---
+title: "LAB 5 - LASSO & RIDGE"
+author: "ANAM"
+date: "10/8/2020"
+output: html_document
+---
+
+# Load libraries
+library(ISLR)
+library(glmnet)
+library(dplyr)
+library(tidyr)
+
+# Checking to see if data exists
+Hitters
+
+# Question No.1
+Hitters = na.omit(Hitters)
+x=model.matrix(Salary~.,Hitters)[,-1]
+y=Hitters$Salary
+grid=10^seq(10,-2,length=100)
+ridge.mod=glmnet(x,y,alpha=0,lambda=grid)
+dim(coef(ridge.mod))
+set.seed(1)
+train=sample(1:nrow(x), nrow(x)/2)
+test=(-train)
+y.test=y[test]
+ridge.mod=glmnet(x[train,],y[train],alpha=0,lambda=grid)
+ridge.pred=predict(ridge.mod,s=50,newx=x[test,])
+mean((ridge.pred-y.test)^2)
+# MSE = 144270
+
+# Question No.2 
+plot(ridge.mod, xvar="lambda", label=T)
+# we can see that predictor 14,15,19 shrink the most as lambda increases. 
+
+#Question No.3
+set.seed(1)
+cv.out=cv.glmnet(x[train ,],y[ train],alpha=0)
+plot(cv.out)
+bestlam =cv.out$lambda.min
+bestlam
+largelam = cv.out$lambda.1se
+largelam
+ridge.pred=predict (ridge.mod ,s=largelam ,newx=x[test ,])
+mean((ridge.pred -y.test)^2)
+# largest lambda = 6401.138
+# mse with largest lambda = 164592.4
+# the value of λ that results in the smallest crossvalidation error is 326.0828 ~ 326
+# the test MSE associated with this value of λ is 139833.6 ~ 139834
+
+# Question 4 is true - lasso model could be considered easier to interpret since it involves only a subset of the predictors
+set.seed(1)
+cv.out=cv.glmnet(x[train ,],y[ train],alpha=0)
+plot(cv.out)
+bestlam =cv.out$lambda.min
+bestlam
+ridge.pred=predict (ridge.mod ,s=326.08 ,newx=x[test ,])
+mean((ridge.pred -y.test)^2)
+
+lasso.mod=glmnet(x[train,],y[train],alpha=1,lambda=grid)
+plot(lasso.mod)
+set.seed(1)
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.out)
+largelam = cv.out$lambda.1se
+largelam
+lasso.pred=predict(lasso.mod,s=largelam,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+# since error is greater for the lasso model therefore it gives worse test prediction accuracy.
+
+
+# Question 5
+lasso.mod=glmnet(x[train,],y[train],alpha=1,lambda=grid)
+plot(lasso.mod)
+set.seed(1)
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+plot(cv.out)
+largelam=cv.out$lambda.1se
+largelam
+lasso.pred=predict(lasso.mod,s=largelam,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=largelam)[1:20,]
+lasso.coef
+lasso.coef[lasso.coef!=0]
+
+# In addition to Hits, Walks, CRuns and CRBI  will be included in the final model.
+
+#Question 6
+Credit = read.csv("C:/Users/anama/Downloads/Credit.csv")
+row.names=1
+Credit$ID<-NULL
+Credit=na.omit(Credit)
+
+ x <- model.matrix(Balance ~ ., data = Credit)[, -1]
+
+
+set.seed(1)
+train <- sample(1: nrow(x), nrow(x)/2)
+test <- -train
+
+y <- Credit$Balance
+y.test <- y[test]
+
+set.seed(1)
+train <- sample(1: nrow(x), nrow(x)/2)
+test <- -train
+
+set.seed(1)
+cv.out=cv.glmnet(x[train,],y[train],alpha=1)
+grid = 10^seq(10, -2, length = 100)
+lasso.mod=glmnet(x[train,],y[train],alpha=1,lambda=grid)
+plot(lasso.mod)
+plot(cv.out)
+# 6 - as we can see in the plot
+
+largelam = cv.out$lambda.1se
+largelam
+bestlam = cv.out$lambda.min
+bestlam
+
+
+
+# Question 7
+largelam = cv.out$lambda.1se
+largelam
+lasso.pred=predict(lasso.mod,s=largelam,newx=x[test,])
+mean((lasso.pred-y.test)^2)
+# 11126 mse with largelam
+
+#Question 8
+set.seed(1)
+cv.out = cv.glmnet(x[train,],y[train],alpha=0.5)
+plot(cv.out)
+bestlam = cv.out$lambda.min
+bestlam
+
+elastic.mod = glmnet(x[train,],y[train],alpha=0.5,lambda=bestlam)
+elastic.predict= predict.glmnet(elastic.mod,x[test,])
+mean((elastic.predict-y[test])^2)
+
+elastic.mod = glmnet(x[train,],y[train],alpha=0.75,lambda=bestlam)
+elastic.predict= predict.glmnet(elastic.mod,x[test,])
+mean((elastic.predict-y[test])^2)
+
+elastic.mod = glmnet(x[train,],y[train],alpha=0.25,lambda=bestlam)
+elastic.predict= predict.glmnet(elastic.mod,x[test,])
+mean((elastic.predict-y[test])^2)
+
+elastic.mod = glmnet(x[train,],y[train],alpha=0.0,lambda=bestlam)
+elastic.predict= predict.glmnet(elastic.mod,x[test,])
+mean((elastic.predict-y[test])^2)
+
+
+# ALPHA = 0.5
+set.seed(1)
+cv.en = cv.glmnet(x[train,],y[train],alpha=0.5)
+plot(cv.en)
+bestlam.en = cv.en$lambda.min
+bestlam.en
+en.results = glmnet(x[train,],y[train],alpha=0.5,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP
+
+en.results = glmnet(x[train,],y[train],alpha=0.75,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP
+
+en.results = glmnet(x[train,],y[train],alpha=0.25,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP
+
+en.results = glmnet(x[train,],y[train],alpha=0,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP
+
+
+
+en= glmnet(x[train,],y[train],alpha=0.5) #alpha=1 is the lasso penalty, and alpha=0 the ridge penalty. Here we are taking a 50/50 mix of the two
+plot(en)
+
+set.seed(1)
+cv.en = cv.glmnet(x[train,],y[train],alpha=0.5)
+plot(cv.en)
+bestlam.en = cv.en$lambda.min
+bestlam.en
+
+en.results = glmnet(x[train,],y[train],alpha=0.5,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP #10624.84
+
+en.results = glmnet(x[train,],y[train],alpha=0.75,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP #10691.26
+
+en.results = glmnet(x[train,],y[train],alpha=0.25,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP #10573.68
+
+en.results = glmnet(x[train,],y[train],alpha=0.0,lambda=bestlam.en)
+en.predict= predict.glmnet(en.results,x[test,])
+MSEP = mean((en.predict-y[test])^2); MSEP #10533.57
+
+
+
+
+
+
+
